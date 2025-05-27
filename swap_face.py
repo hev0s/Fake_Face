@@ -123,3 +123,4 @@ class FaceSwapApp:
                 self.status_var.set("Ready to perform face swap")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load image: {str(e)}")
+            # sprint 1 finished
