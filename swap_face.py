@@ -89,3 +89,14 @@ class FaceSwapApp:
         for i in range(3):
             self.image_frame.columnconfigure(i, weight=1)
         self.image_frame.rowconfigure(0, weight=1)
+
+    def load_models(self):
+        try:
+            self.detector = dlib.get_frontal_face_detector()
+            model_path = "shape_predictor_68_face_landmarks.dat"
+            if not os.path.exists(model_path):
+                raise FileNotFoundError("Dlib model file not found.")
+            self.predictor = dlib.shape_predictor(model_path)
+        except Exception as e:
+            messagebox.showerror("Model Load Error", str(e))
+            self.root.destroy()
