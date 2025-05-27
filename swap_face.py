@@ -100,3 +100,26 @@ class FaceSwapApp:
         except Exception as e:
             messagebox.showerror("Model Load Error", str(e))
             self.root.destroy()
+
+    def load_image(self, is_source=True):
+        path = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg *.jpeg *.png")])
+        if not path:
+            return
+        try:
+            image = cv2.imread(path)
+            if image is None:
+                raise ValueError("Invalid image file")
+            if is_source:
+                self.source_image = image
+                self.source_path = path
+                self.show_image(image, self.source_label)
+                self.status_var.set(f"Source image loaded: {os.path.basename(path)}")
+            else:
+                self.target_image = image
+                self.target_path = path
+                self.show_image(image, self.target_label)
+                self.status_var.set(f"Target image loaded: {os.path.basename(path)}")
+            if self.source_image is not None and self.target_image is not None:
+                self.status_var.set("Ready to perform face swap")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load image: {str(e)}")
