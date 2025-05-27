@@ -23,3 +23,69 @@ class FaceSwapApp:
 
         self.display_width = 400
         self.display_height = 300
+
+    def setup_ui(self):
+        self.root.title("Professional Face Swap v2.3")
+        self.root.geometry("1000x700")
+        self.root.minsize(900, 600)
+
+        main_frame = Frame(self.root)
+        main_frame.pack(fill=BOTH, expand=True, padx=10, pady=10)
+
+        self.image_frame = Frame(main_frame)
+        self.image_frame.pack(fill=BOTH, expand=True)
+
+        self.source_frame = LabelFrame(self.image_frame, text="Source Image")
+        self.source_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.source_label = Label(self.source_frame)
+        self.source_label.pack()
+
+        self.target_frame = LabelFrame(self.image_frame, text="Target Image")
+        self.target_frame.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
+        self.target_label = Label(self.target_frame)
+        self.target_label.pack()
+
+        self.result_frame = LabelFrame(self.image_frame, text="Result Image")
+        self.result_label = Label(self.result_frame)
+        self.result_label.pack()
+
+        control_frame = Frame(main_frame)
+        control_frame.pack(fill=X, pady=10)
+
+        Button(control_frame, text="Load Source", command=self.load_source).grid(row=0, column=0, padx=5)
+        Button(control_frame, text="Load Target", command=self.load_target).grid(row=0, column=1, padx=5)
+        Button(control_frame, text="Swap Faces", command=self.swap_faces).grid(row=0, column=2, padx=5)
+
+        self.save_button = Button(control_frame, text="Save Result", command=self.save_result, state=DISABLED)
+        self.save_button.grid(row=0, column=3, padx=5)
+
+        Button(control_frame, text="Generate AI Face", command=self.generate_ai_face).grid(row=0, column=4, padx=5)
+        Button(control_frame, text="Webcam Source", command=lambda: self.capture_from_webcam(is_source=True)).grid(
+            row=0, column=5, padx=5)
+        Button(control_frame, text="Webcam Target", command=lambda: self.capture_from_webcam(is_source=False)).grid(
+            row=0, column=6, padx=5)
+        Button(control_frame, text="Live Swap Video", command=self.open_live_video).grid(row=0, column=7, padx=5)
+
+        settings_frame = Frame(control_frame)
+        settings_frame.grid(row=1, column=0, columnspan=8, pady=5)
+
+        Label(settings_frame, text="Blend Amount:").grid(row=0, column=0)
+        self.blend_scale = Scale(settings_frame, from_=0, to=100, orient=HORIZONTAL, length=150)
+        self.blend_scale.set(65)
+        self.blend_scale.grid(row=0, column=1)
+        self.blend_scale.bind("<ButtonRelease-1>", self.update_blend)
+
+        Label(settings_frame, text="Color Adjustment:").grid(row=0, column=2)
+        self.color_scale = Scale(settings_frame, from_=0, to=100, orient=HORIZONTAL, length=150)
+        self.color_scale.set(50)
+        self.color_scale.grid(row=0, column=3)
+        self.color_scale.bind("<ButtonRelease-1>", self.update_color)
+
+        self.status_var = StringVar()
+        self.status_var.set("Ready to load images")
+        status_bar = Label(self.root, textvariable=self.status_var, bd=1, relief=SUNKEN, anchor=W)
+        status_bar.pack(side=BOTTOM, fill=X)
+
+        for i in range(3):
+            self.image_frame.columnconfigure(i, weight=1)
+        self.image_frame.rowconfigure(0, weight=1)
