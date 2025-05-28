@@ -125,3 +125,9 @@ class FaceSwapApp:
             messagebox.showerror("Error", f"Failed to load image: {str(e)}")
             # sprint 1 finished
             # sprint 2 start
+
+    def load_source(self):
+        self.load_image(is_source=True)
+
+    def load_target(self):
+        self.load_image(is_source=False)
