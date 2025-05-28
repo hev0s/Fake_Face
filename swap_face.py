@@ -131,3 +131,42 @@ class FaceSwapApp:
 
     def load_target(self):
         self.load_image(is_source=False)
+
+    def capture_from_webcam(self, is_source=True):
+        cap = cv2.VideoCapture(0)
+        if not cap.isOpened():
+            messagebox.showerror("Error", "Cannot open webcam.")
+            return
+
+        self.status_var.set("SPACE: Capture image | ESC: Exit")
+        cv2.namedWindow("Webcam", cv2.WINDOW_NORMAL)
+        captured = None
+
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            cv2.imshow("Webcam", frame)
+            key = cv2.waitKey(1)
+            if key == 32:  # SPACE
+                captured = frame.copy()
+                break
+            elif key == 27:  # ESC
+                break
+
+        cap.release()
+        cv2.destroyAllWindows()
+
+        if captured is not None:
+            if is_source:
+                self.source_image = captured
+                self.source_path = "webcam_source.jpg"
+                self.show_image(captured, self.source_label)
+                self.status_var.set("Source image captured from webcam.")
+            else:
+                self.target_image = captured
+                self.target_path = "webcam_target.jpg"
+                self.show_image(captured, self.target_label)
+                self.status_var.set("Target image captured from webcam.")
+            if self.source_image is not None and self.target_image is not None:
+                self.status_var.set("Ready to perform face swap.")
