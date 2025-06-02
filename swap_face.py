@@ -171,3 +171,36 @@ class FaceSwapApp:
             if self.source_image is not None and self.target_image is not None:
                 self.status_var.set("Ready to perform face swap.")
                 # sprint 2 finished
+
+    # sprint 3 generate foto from ai
+    def generate_ai_face(self):
+        try:
+            self.status_var.set("Downloading AI face...")
+            self.root.config(cursor="watch")
+            self.root.update()
+
+            url = "https://thispersondoesnotexist.com/"
+            folder = os.path.join(os.getcwd(), "ai_faces")
+            os.makedirs(folder, exist_ok=True)
+
+            filename = f"ai_face_{uuid.uuid4().hex[:8]}.jpg"
+            filepath = os.path.join(folder, filename)
+
+            urllib.request.urlretrieve(url, filepath)
+            image = cv2.imread(filepath)
+
+            if image is None:
+                raise ValueError("AI face could not be downloaded.")
+
+            self.source_image = image
+            self.source_path = filepath
+            self.show_image(image, self.source_label)
+            self.status_var.set("AI face loaded.")
+
+            if self.target_image is not None:
+                self.status_var.set("Ready to perform face swap with AI face.")
+        except Exception as e:
+            messagebox.showerror("AI Face Error", str(e))
+            self.status_var.set("AI face generation failed.")
+        finally:
+            self.root.config(cursor="")
