@@ -219,3 +219,26 @@ class FaceSwapApp:
         cv2.fillConvexPoly(mask, hull, 1.0)
         mask = cv2.GaussianBlur(mask, (15, 15), 0)
         return mask[..., np.newaxis]
+
+    def adjust_colors(self, src, target, amount):
+        if amount == 0:
+            return src
+        try:
+            src_lab = cv2.cvtColor(src, cv2.COLOR_BGR2LAB).astype(np.float32)
+            target_lab = cv2.cvtColor(target, cv2.COLOR_BGR2LAB).astype(np.float32)
+
+            src_mean, src_std = cv2.meanStdDev(src_lab)
+            tgt_mean, tgt_std = cv2.meanStdDev(target_lab)
+
+            src_mean, src_std = src_mean.flatten(), src_std.flatten()
+            tgt_mean, tgt_std = tgt_mean.flatten(), tgt_std.flatten()
+
+            src_std[src_std == 0] = 1.0
+            normalized = (src_lab - src_mean) / src_std
+            adjusted = normalized * ((1 - amount) * src_std + amount * tgt_std) + \
+                       ((1 - amount) * src_mean + amount * tgt_mean)
+            adjusted = np.clip(adjusted, 0, 255).astype(np.uint8)
+            return cv2.cvtColor(adjusted, cv2.COLOR_LAB2BGR)
+        except Exception as e:
+            messagebox.showerror("Error", f"Color adjustment failed: {str(e)}")
+            return src
