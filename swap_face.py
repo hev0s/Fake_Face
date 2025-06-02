@@ -242,3 +242,4 @@ class FaceSwapApp:
         except Exception as e:
             messagebox.showerror("Error", f"Color adjustment failed: {str(e)}")
             return src
+            #print({str(e)})
