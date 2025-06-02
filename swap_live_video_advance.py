@@ -8,6 +8,7 @@ import os
 import urllib.request
 import uuid
 from scipy.spatial import Delaunay
+import subprocess
 
 class FaceSwapApp:
     def __init__(self, root):
@@ -63,7 +64,10 @@ class FaceSwapApp:
         Button(control_frame, text="Webcam Source", command=lambda: self.capture_from_webcam(is_source=True)).grid(row=0, column=5, padx=5)
         Button(control_frame, text="Webcam Target", command=lambda: self.capture_from_webcam(is_source=False)).grid(row=0, column=6, padx=5)
         Button(control_frame, text="Live Swap Video", command=self.open_live_video).grid(row=0, column=7, padx=5)
-
+        """
+        Button(control_frame, text="Swap avec SimSwap", command=self.run_simswap_gui).grid(row=2, column=0, padx=5)
+        Button(control_frame, text="Swap avec FaceFusion", command=self.run_facefusion_gui).grid(row=2, column=1, padx=5)
+        """
         settings_frame = Frame(control_frame)
         settings_frame.grid(row=1, column=0, columnspan=8, pady=5)
 
@@ -290,6 +294,50 @@ class FaceSwapApp:
             self.status_var.set("Face swap failed.")
         finally:
             self.root.config(cursor="")
+
+    """
+    def run_simswap_gui(self):
+        if self.source_path and self.target_path:
+            output_folder = os.path.join(os.getcwd(), "simswap_output")
+            os.makedirs(output_folder, exist_ok=True)
+    
+            command = [
+                "python", "run_simswap.py",
+                "--target", self.target_path,
+                "--source", self.source_path,
+                "--output", output_folder
+            ]
+            subprocess.run(command)
+            result_img_path = os.path.join(output_folder, "result.jpg")
+            if os.path.exists(result_img_path):
+                result = cv2.imread(result_img_path)
+                self.result_image = result
+                self.show_result()
+                self.save_button.config(state=NORMAL)
+                self.status_var.set("Face swap avec SimSwap terminé.")
+    """
+
+
+    """
+    def run_facefusion_gui(self):
+    if self.source_path and self.target_path:
+        output_path = os.path.join(os.getcwd(), "facefusion_output.jpg")
+
+        command = [
+            "python", "run_facefusion.py",
+            "--source", self.source_path,
+            "--target", self.target_path,
+            "--output", output_path
+        ]
+
+        subprocess.run(command)
+        if os.path.exists(output_path):
+            result = cv2.imread(output_path)
+            self.result_image = result
+            self.show_result()
+            self.save_button.config(state=NORMAL)
+            self.status_var.set("Face swap avec FaceFusion terminé.")
+    """
 
     def update_face_swap(self):
         if not hasattr(self, 'warped_src'):
