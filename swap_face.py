@@ -170,4 +170,4 @@ class FaceSwapApp:
                 self.status_var.set("Target image captured from webcam.")
             if self.source_image is not None and self.target_image is not None:
                 self.status_var.set("Ready to perform face swap.")
-                #print(self.source_image)
+                # sprint 2 finished
