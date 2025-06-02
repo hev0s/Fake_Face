@@ -243,3 +243,104 @@ class FaceSwapApp:
             messagebox.showerror("Error", f"Color adjustment failed: {str(e)}")
             return src
             #print({str(e)})
+
+        def swap_faces(self):
+            if self.source_image is None or self.target_image is None:
+                messagebox.showerror("Error", "Please load both source and target images.")
+                return
+
+            self.status_var.set("Processing... Please wait.")
+            self.root.config(cursor="watch")
+            self.root.update()
+
+            try:
+                src_points = self.get_landmarks(self.source_image)
+                tgt_points = self.get_landmarks(self.target_image)
+
+                if src_points is None or tgt_points is None:
+                    raise ValueError("Face not detected in one or both images.")
+
+                mask = self.create_mask(tgt_points, self.target_image.shape)
+                matrix, _ = cv2.estimateAffinePartial2D(src_points, tgt_points)
+                warped_src = cv2.warpAffine(self.source_image, matrix,
+                                            (self.target_image.shape[1], self.target_image.shape[0]))
+
+                self.warped_src = warped_src
+                self.mask = mask
+                self.src_points = src_points
+                self.tgt_points = tgt_points
+
+                self.update_face_swap()
+            except Exception as e:
+                messagebox.showerror("Error", f"Face swap failed: {str(e)}")
+                self.status_var.set("Face swap failed.")
+            finally:
+                self.root.config(cursor="")
+
+        def update_face_swap(self):
+            if not hasattr(self, 'warped_src'):
+                return
+
+            try:
+                blend_amount = self.blend_scale.get() / 100.0
+                color_amount = self.color_scale.get() / 100.0
+
+                if color_amount > 0:
+                    color_adjusted = self.adjust_colors(self.warped_src, self.target_image, color_amount)
+                else:
+                    color_adjusted = self.warped_src
+
+                mask_3ch = np.repeat(self.mask, 3, axis=2)
+                blended = (color_adjusted * mask_3ch + self.target_image * (1 - mask_3ch)).astype(np.uint8)
+                self.result_image = (blended * blend_amount + self.target_image * (1 - blend_amount)).astype(np.uint8)
+
+                self.show_result()
+                self.save_button.config(state=NORMAL)
+                self.status_var.set("Face swap completed.")
+            except Exception as e:
+                messagebox.showerror("Error", f"Update failed: {str(e)}")
+
+        def update_blend(self, event=None):
+            if hasattr(self, 'result_image'):
+                self.update_face_swap()
+
+        def update_color(self, event=None):
+            if hasattr(self, 'result_image'):
+                self.update_face_swap()
+
+        def show_image(self, image, label_widget):
+            rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            h, w = rgb.shape[:2]
+            scale = min(self.display_width / w, self.display_height / h)
+            resized = cv2.resize(rgb, (int(w * scale), int(h * scale)))
+            img_tk = ImageTk.PhotoImage(image=Image.fromarray(resized))
+            label_widget.config(image=img_tk)
+            label_widget.image = img_tk
+
+        def show_result(self):
+            self.result_frame.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
+            self.image_frame.columnconfigure(2, weight=1)
+            self.show_image(self.result_image, self.result_label)
+
+        def save_result(self):
+            if not hasattr(self, 'result_image'):
+                messagebox.showerror("Error", "No result image to save.")
+                return
+            default_name = f"swap_{os.path.basename(self.source_path)}_{os.path.basename(self.target_path)}"
+            path = filedialog.asksaveasfilename(
+                initialfile=default_name,
+                defaultextension=".jpg",
+                filetypes=[("JPEG", "*.jpg"), ("PNG", "*.png")]
+            )
+            if path:
+                try:
+                    cv2.imwrite(path, self.result_image)
+                    messagebox.showinfo("Saved", f"Image saved at:\n{path}")
+                    self.status_var.set(f"Saved to {os.path.basename(path)}")
+                except Exception as e:
+                    messagebox.showerror("Save Error", str(e))
+
+    if __name__ == "__main__":
+        root = Tk()
+        app = FaceSwapApp(root)
+        root.mainloop()
