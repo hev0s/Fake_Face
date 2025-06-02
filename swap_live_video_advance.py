@@ -7,7 +7,7 @@ from PIL import Image, ImageTk
 import os
 import urllib.request
 import uuid
-
+from scipy.spatial import Delaunay
 
 class FaceSwapApp:
     def __init__(self, root):
@@ -237,33 +237,54 @@ class FaceSwapApp:
             messagebox.showerror("Error", f"Color adjustment failed: {str(e)}")
             return src
 
+        def warp_image_3d(self, src_img, src_points, tgt_points, img_shape):
+            warped_img = np.zeros(img_shape, dtype=src_img.dtype)
+            tri = Delaunay(tgt_points)
+
+            for tri_indices in tri.simplices:
+                t1 = np.float32([src_points[i] for i in tri_indices])
+                t2 = np.float32([tgt_points[i] for i in tri_indices])
+                r1 = cv2.boundingRect(t1)
+                r2 = cv2.boundingRect(t2)
+                t1_rect = [(p[0] - r1[0], p[1] - r1[1]) for p in t1]
+                t2_rect = [(p[0] - r2[0], p[1] - r2[1]) for p in t2]
+                mask = np.zeros((r2[3], r2[2], 3), dtype=np.float32)
+                cv2.fillConvexPoly(mask, np.int32(t2_rect), (1.0, 1.0, 1.0), 16)
+                img1_rect = src_img[r1[1]:r1[1] + r1[3], r1[0]:r1[0] + r1[2]]
+                size = (r2[2], r2[3])
+                warp_mat = cv2.getAffineTransform(np.float32(t1_rect), np.float32(t2_rect))
+                warped_triangle = cv2.warpAffine(img1_rect, warp_mat, size, None, flags=cv2.INTER_LINEAR,
+                                                 borderMode=cv2.BORDER_REFLECT_101)
+                warped_patch = warped_img[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]]
+                warped_patch = warped_patch * (1 - mask) + warped_triangle * mask
+                warped_img[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] = warped_patch
+            return warped_img
+
     def swap_faces(self):
         if self.source_image is None or self.target_image is None:
             messagebox.showerror("Error", "Please load both source and target images.")
             return
-
         self.status_var.set("Processing... Please wait.")
         self.root.config(cursor="watch")
         self.root.update()
-
         try:
             src_points = self.get_landmarks(self.source_image)
             tgt_points = self.get_landmarks(self.target_image)
-
             if src_points is None or tgt_points is None:
                 raise ValueError("Face not detected in one or both images.")
-
+            warped = self.warp_image_3d(self.source_image, src_points, tgt_points, self.target_image.shape)
             mask = self.create_mask(tgt_points, self.target_image.shape)
-            matrix, _ = cv2.estimateAffinePartial2D(src_points, tgt_points)
-            warped_src = cv2.warpAffine(self.source_image, matrix,
-                                        (self.target_image.shape[1], self.target_image.shape[0]))
-
-            self.warped_src = warped_src
-            self.mask = mask
-            self.src_points = src_points
-            self.tgt_points = tgt_points
-
-            self.update_face_swap()
+            center = tuple(np.mean(tgt_points, axis=0).astype(int))
+            self.result_image = cv2.seamlessClone(
+                warped,
+                self.target_image,
+                (mask * 255).astype(np.uint8),
+                center,
+                cv2.NORMAL_CLONE
+            )
+            self.show_result()
+            self.save_button.config(state=NORMAL)
+            self.status_var.set("Face swap completed.")
         except Exception as e:
             messagebox.showerror("Error", f"Face swap failed: {str(e)}")
             self.status_var.set("Face swap failed.")
