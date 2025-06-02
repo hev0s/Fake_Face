@@ -204,3 +204,18 @@ class FaceSwapApp:
             self.status_var.set("AI face generation failed.")
         finally:
             self.root.config(cursor="")
+
+    def get_landmarks(self, image):
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        faces = self.detector(gray)
+        if len(faces) == 0:
+            return None
+        shape = self.predictor(gray, faces[0])
+        return np.array([(p.x, p.y) for p in shape.parts()], dtype=np.int32)
+
+    def create_mask(self, landmarks, shape):
+        hull = cv2.convexHull(landmarks)
+        mask = np.zeros(shape[:2], dtype=np.float32)
+        cv2.fillConvexPoly(mask, hull, 1.0)
+        mask = cv2.GaussianBlur(mask, (15, 15), 0)
+        return mask[..., np.newaxis]
